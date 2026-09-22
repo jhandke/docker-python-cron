@@ -1,20 +1,19 @@
 FROM python:3.14-slim
 
-RUN apt-get update && apt-get install -y cron
+RUN apt-get update && apt-get install -y cron dumb-init
 
-WORKDIR /usr/src/app
-
-COPY . .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
+COPY requirements.txt /app/requirements.txt
+COPY main.py /app/main.py
 COPY cronjob /etc/cron.d/cronjob
-
-RUN chmod 0644 /etc/cron.d/cronjob
+COPY entrypoint.sh /entrypoint.sh
 
 RUN crontab /etc/cron.d/cronjob
-
 RUN touch /var/log/cron.log
+RUN chmod 0644 /etc/cron.d/cronjob
 
-CMD cron && tail -f /var/log/cron.log
+WORKDIR /app
+RUN pip install --no-cache-dir -r requirements.txt
 
+STOPSIGNAL SIGINT
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/entrypoint.sh"]
